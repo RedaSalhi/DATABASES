@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MARK / SPS — Organization</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #07090f;
+      --sidebar:    #0c1120;
+      --surface:    #101827;
+      --surface2:   #192236;
+      --border:     #1e3050;
+      --accent:     #2563eb;
+      --accent-h:   #3b82f6;
+      --glow:       rgba(37,99,235,.25);
+      --text:       #e2e8f0;
+      --muted:      #5a7498;
+      --dim:        #8ba3c0;
+      --green:      #22c55e;
+      --amber:      #f59e0b;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+    }
+
+    ::-webkit-scrollbar          { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track    { background: transparent; }
+    ::-webkit-scrollbar-thumb    { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+    /* ── Layout ─────────────────────────────────── */
+    .app  { display: flex; flex-direction: column; height: 100vh; }
+    .body { display: flex; flex: 1; overflow: hidden; }
+    .main { flex: 1; overflow: auto; padding: 24px 28px; }
+
+    /* ── Header ──────────────────────────────────── */
+    .header {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      background: var(--sidebar);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      gap: 14px;
+    }
+    .logo       { font-weight: 800; font-size: 14px; letter-spacing: 2.5px; color: var(--accent-h); text-transform: uppercase; }
+    .logo-sep   { width: 1px; height: 18px; background: var(--border); }
+    .logo-sub   { font-size: 12px; color: var(--muted); letter-spacing: .3px; }
+    .hdr-right  { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+    .search-box {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 7px; padding: 5px 11px; width: 220px;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .search-box:focus-within {
+      border-color: var(--accent-h);
+      box-shadow: 0 0 0 3px var(--glow);
+    }
+    .search-box svg   { color: var(--muted); flex-shrink: 0; }
+    .search-box input { background: none; border: none; outline: none; color: var(--text); font-size: 12.5px; width: 100%; }
+    .search-box input::placeholder { color: var(--muted); }
+    .clear-btn { cursor: pointer; color: var(--muted); font-size: 11px; line-height: 1; }
+    .clear-btn:hover { color: var(--text); }
+
+    /* ── Sidebar ─────────────────────────────────── */
+    .sidebar {
+      width: 176px;
+      background: var(--sidebar);
+      border-right: 1px solid var(--border);
+      flex-shrink: 0;
+      padding: 20px 0;
+      overflow-y: auto;
+    }
+    .sb-label {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 1.8px;
+      text-transform: uppercase; color: var(--muted); padding: 0 14px 10px;
+    }
+    .rb {
+      display: flex; align-items: center; gap: 9px;
+      width: 100%; padding: 9px 14px;
+      background: none; border: none; border-left: 2px solid transparent;
+      color: var(--dim); font-size: 12.5px;
+      cursor: pointer; text-align: left;
+      transition: background .12s, color .12s;
+    }
+    .rb:hover           { background: var(--surface2); color: var(--text); }
+    .rb.active          { background: var(--surface2); color: var(--accent-h); border-left-color: var(--accent-h); font-weight: 600; }
+    .rb-flag            { font-size: 15px; }
+    .rb-count           { margin-left: auto; font-size: 10px; padding: 1px 5px; border-radius: 8px; background: var(--surface); color: var(--muted); }
+    .rb.active .rb-count { background: var(--glow); color: var(--accent-h); }
+
+    /* ── Stats bar ───────────────────────────────── */
+    .stats { display: flex; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; }
+    .sc {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 18px; min-width: 90px;
+    }
+    .sc-val { font-size: 22px; font-weight: 800; color: var(--accent-h); line-height: 1; }
+    .sc-lbl { font-size: 10.5px; color: var(--muted); margin-top: 4px; letter-spacing: .3px; }
+    .sc.wide { flex: 1; }
+    .sc.wide .sc-val { font-size: 14px; font-weight: 700; }
+
+    /* ── Org chart ───────────────────────────────── */
+    .chart-root { display: inline-flex; flex-direction: column; align-items: center; padding-bottom: 40px; }
+
+    .nw { display: flex; flex-direction: column; align-items: center; }
+
+    .nc {
+      padding: 9px 13px; border-radius: 8px;
+      text-align: center; position: relative;
+      transition: transform .15s, box-shadow .15s;
+      min-width: 140px; max-width: 196px;
+      user-select: none;
+    }
+    .nc.clickable { cursor: pointer; }
+    .nc.clickable:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.5), 0 0 0 1px var(--accent); }
+
+    .nn { font-size: 11.5px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nt { font-size: 9.5px; color: rgba(255,255,255,.5); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .nb {
+      position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%);
+      font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 10px;
+      white-space: nowrap; z-index: 1; color: #fff;
+    }
+
+    /* Level colours */
+    .l0 { background: linear-gradient(145deg,#1d3f8f,#2558d0); border: 1px solid #3b7ef0; box-shadow: 0 0 24px rgba(37,99,235,.35); min-width: 180px; }
+    .l1 { background: linear-gradient(145deg,#162a54,#1c3565); border: 1px solid #24539f; }
+    .l2 { background: linear-gradient(145deg,#0f1e3a,#142444); border: 1px solid #1b3060; }
+    .l3 { background: linear-gradient(145deg,#0a1525,#0e1e33); border: 1px solid #162a48; }
+    .l4 { background: #080f1e; border: 1px solid #111e35; }
+
+    .stag { background: linear-gradient(145deg,#0a1e10,#0c2613) !important; border-color: #155128 !important; }
+    .stag .nt { color: #4ade80 !important; }
+
+    .hit { border-color: var(--amber) !important; box-shadow: 0 0 14px rgba(245,158,11,.35) !important; }
+    .hit .nn { color: var(--amber); }
+
+    /* Connectors */
+    .vl { width: 2px; height: 20px; background: var(--border); }
+
+    .cr { display: flex; padding-top: 20px; }
+
+    .cs {
+      display: flex; flex-direction: column; align-items: center;
+      position: relative; padding: 0 7px;
+    }
+    /* horizontal bar */
+    .cs::before {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0;
+      border-top: 2px solid var(--border);
+    }
+    .cs:first-child::before { left: 50%; }
+    .cs:last-child::before  { right: 50%; }
+    .cs:only-child::before  { display: none; }
+    /* vertical drop */
+    .cs::after {
+      content: ''; position: absolute;
+      top: 0; left: 50%; transform: translateX(-50%);
+      width: 2px; height: 20px; background: var(--border);
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeDown .18s ease; }
+
+    /* ── Empty state ─────────────────────────────── */
+    .empty { text-align: center; color: var(--muted); padding: 60px 20px; font-size: 13px; }
+    .empty svg { margin-bottom: 12px; opacity: .3; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+/* ================================================================
+   DATA
+================================================================ */
+const orgFRData = {
+  name: "Hatem MUSTAPHA",
+  title: "Co-Director Activités Marché",
+  children: [
+    {
+      name: "Pierre GIMENES",
+      title: "Global Co-Head of MARK/SPS Co-Head of Derivatives Trad...",
+      children: [
+        {
+          name: "Romain DUBAN", title: "Hd of Pricing EQD Large Retail",
+          children: [
+            { name: "Hassen KHROUF", title: "Pricer", children: [
+                { name: "Salim ELOUAHDANI", title: "Stagiaire d'Études", children: [] }
+            ]},
+            { name: "Amani Htiouech", title: "Pricer", children: [] },
+            { name: "Eric NGHE", title: "Pricer", children: [
+                { name: "Elsa HILLEBRAND",  title: "Stagiaire d'Études", children: [] },
+                { name: "Grégoire JOLBERT", title: "Stagiaire d'Études", children: [] }
+            ]},
+            { name: "Matthieu NGUYEN", title: "Pricer", children: [] }
+          ]
+        },
+        {
+          name: "Arnaud SULTAN", title: "Head of Pricing EQD Pwm",
+          children: [
+            { name: "Aziz RACHDI", title: "Pricer", children: [
+                { name: "Lola CHARDIGNY", title: "Stagiaire d'Études", children: [] }
+            ]}
+          ]
+        },
+        { name: "Khalil ZAHRI", title: "Structureur", children: [
+            { name: "Amin BELFKIRA", title: "Stagiaire d'Études", children: [] }
+        ]},
+        { name: "Mark Raffaele D'ALTERIO", title: "Index Structurer", children: [] },
+        { name: "Harold ELKOUBY", title: "Head of SH 2020 Light Equ &...", children: [
+            { name: "Corentin GARREAU", title: "Stagiaire d'Études", children: [] },
+            { name: "Alexis BRIEUX",    title: "Pricer",              children: [] }
+        ]},
+        {
+          name: "Benjamin AMOUDRUZ", title: "Head of Pricing EQD Instit",
+          children: [
+            { name: "Hugo MEARY", title: "Pricer", children: [] },
+            { name: "Enzo SCAVETTA", title: "Pricer", children: [
+                { name: "Mathias GAUTIER", title: "Stagiaire d'Études", children: [] }
+            ]},
+            { name: "Asma DASSI", title: "Pricer", children: [] }
+          ]
+        }
+      ]
+    },
+    {
+      name: "Vincent VIGROUX", title: "Global Co-Head of MARK/SPS",
+      children: [
+        { name: "Tommy PAULHAN", title: "Transversal Structuring Project", children: [] },
+        {
+          name: "Amaury GEROMEL", title: "Head of the FIC Rates Corpo",
+          children: [
+            { name: "Thierry COQUARD",    title: "Structurer", children: [] },
+            { name: "Alexandre HEIDMANN", title: "Structurer", children: [] },
+            { name: "Maxime MALGRAT", title: "Pricer", children: [
+                { name: "Adrien BULOZ",   title: "Pricer",              children: [] },
+                { name: "Carlo BELLATI",  title: "Pricer",              children: [] },
+                { name: "Damien FLEURIE", title: "Stagiaire d'Études",  children: [] }
+            ]},
+            { name: "El Mehdi JANATI IDRISSI", title: "Pricer", children: [] },
+            { name: "Angelo ARCERI",           title: "Pricer", children: [] }
+          ]
+        },
+        {
+          name: "Laurent WEIL", title: "Head of Structuring",
+          children: [
+            { name: "Christophe JAECK",  title: "Structurer", children: [] },
+            { name: "Delphine SIMON",    title: "Structurer", children: [] },
+            { name: "Emeline REIGNIER",  title: "Structurer", children: [] },
+            {
+              name: "Foued JAZIRI", title: "Global hd of SGI Structuring",
+              children: [
+                { name: "Ahmed EL FANI",     title: "Index Structurer", children: [] },
+                { name: "Sara TCHIKITO",     title: "Index Structurer", children: [] },
+                { name: "Romain ZECCHINI",   title: "Index Structurer", children: [] },
+                { name: "Marjorie MICHELI",  title: "Index Structurer", children: [
+                    { name: "Axel SOTTILE", title: "Stagiaire d'Études", children: [] },
+                    { name: "Ons JOEY",     title: "Stagiaire d'Études", children: [] }
+                ]},
+                { name: "Veena OLLIVIER",    title: "Responsable of Govern & Reg To...", children: [] },
+                { name: "Alexandra NEBOUT",  title: "Index Structurer", children: [] }
+              ]
+            },
+            { name: "Laure GINOUVES",  title: "Structurer",          children: [] },
+            { name: "Mehdi GHOBRINI",  title: "Structurer",          children: [] },
+            { name: "François CARALP", title: "Head of SPV Structuring", children: [] }
+          ]
+        },
+        {
+          name: "Mathieu JEANDEL", title: "Head of FIC FI Pricing Europe",
+          children: [
+            { name: "Anssam DAKKOUNE", title: "Pricer", children: [] },
+            { name: "Nicolas CLAPIER",  title: "Pricer", children: [
+                { name: "Franck Wilson KOUASSI", title: "Stagiaire d'Études", children: [] }
+            ]},
+            { name: "Jerome MEDIONI", title: "Pricer", children: [
+                { name: "Thibaud RAVENEAU", title: "Pricer",             children: [] },
+                { name: "Fabien NIGLIO",    title: "Pricer",             children: [] },
+                { name: "Clement UHLMANN", title: "Stagiaire d'Études", children: [] }
+            ]},
+            { name: "Amine ES-SATTE", title: "Pricer", children: [] },
+            { name: "Nicolas GREGER",  title: "Pricer", children: [] }
+          ]
+        },
+        { name: "Zouhair JERRAR", title: "QIS Structurer", children: [] }
+      ]
+    },
+    {
+      name: "Arnaud Bertrand", title: "Co-Head of Derivatives Trading",
+      children: [
+        {
+          name: "Jean-Noel PAYER", title: "Head of Index Correlation",
+          children: [
+            { name: "Paul Cazaubiel",     title: "Trader",           children: [] },
+            { name: "Maxime ALESSANDRINI",title: "Trader Exotique",  children: [] },
+            { name: "Eleanor ATTALI",     title: "Stagiare d'Études",children: [] }
+          ]
+        },
+        {
+          name: "Hadrien BOITEAU", title: "Hd Trading Exo Hybrids & Funds Derivatives",
+          children: [
+            { name: "Benjamin ILL",         title: "Trader",                         children: [] },
+            { name: "Sandra DO",            title: "Trader",                         children: [] },
+            { name: "Elie VERZEAUX",        title: "Trader",                         children: [] },
+            { name: "Francois Xavier LAGNEAU", title: "Hd EQD Funds Derivatives Trading", children: [] }
+          ]
+        },
+        {
+          name: "Hatem ESSEFI", title: "Head of Exotics Index Mono",
+          children: [
+            { name: "Julien TIJOU",    title: "Trader", children: [] },
+            { name: "Flora ROMANZINI", title: "Trader", children: [] },
+            {
+              name: "Aurelie CHETRIT", title: "Head of Evolution",
+              children: [
+                { name: "Pierre-Antoine CHEMINOT", title: "Trader", children: [] },
+                { name: "Yann SOUQUET", title: "Exotic Senior Trader", children: [
+                    { name: "Augustin CLOT", title: "Stagiaire d'Études", children: [] }
+                ]}
+              ]
+            },
+            { name: "Djamel MEDDOURI", title: "Sr Trader Imp & Glob Frtb Trading", children: [] }
+          ]
+        },
+        {
+          name: "Philippe DUMONT", title: "Co-Head Flow Options & Glo...",
+          children: [
+            { name: "Antoine AMIEL",        title: "Stagiaire d'Études",           children: [] },
+            { name: "Alexandre DIAS",        title: "Trader",                       children: [] },
+            { name: "Florian MARTINEAU",     title: "Trader",                       children: [] },
+            { name: "Pascal BOURDAIS",       title: "Trader Quantitatif Volatilité",children: [] },
+            { name: "Mohammed Fouad SAHEL",  title: "Trader Quantitatif",           children: [] },
+            { name: "Yasser CHOUIKH",        title: "Trader Quantitatif",           children: [] },
+            { name: "Cyril BARANCO",         title: "Trader Quantitatif",           children: [] },
+            { name: "Alix BERNAL",           title: "Stagiaire d'Études",           children: [] },
+            { name: "Joseph SALON",          title: "Stagiaire d'Études",           children: [] }
+          ]
+        },
+        {
+          name: "Felix PARIENTE", title: "Head Serv & Sec Trading",
+          children: [
+            { name: "Lou BRUNET",        title: "Trader Assistant",  children: [] },
+            { name: "Hicham EL HAIL",    title: "Trader",            children: [] },
+            { name: "Emeric KAHN",       title: "Trader",            children: [] },
+            { name: "Luc BESSET",        title: "Trader",            children: [] },
+            { name: "Grégoire LEDOITE",  title: "Trader",            children: [] },
+            { name: "Marc RADILLAC",     title: "Trader Assistant",  children: [] },
+            { name: "Francois MASSARD",  title: "Trader Options",    children: [] },
+            { name: "William WALLAERT",  title: "Trader",            children: [] },
+            { name: "Glenn FORTUNE",     title: "Trader Assistant",  children: [] },
+            { name: "Adem BIKOUR",       title: "Trader Assistant",  children: [] }
+          ]
+        },
+        {
+          name: "Maxime POPINEAU", title: "Global Head of Stg Trading",
+          children: [
+            { name: "Jeremy GREGOIRE",      title: "Trader Assistant",                  children: [] },
+            { name: "Michel LEVANDOWSKY",   title: "Trader Obligations Convertibles",   children: [] },
+            { name: "Abdelkrim JABRI",      title: "Trader",                            children: [] },
+            { name: "Ilia KIRILLOV",        title: "Trader",                            children: [] },
+            { name: "Sebastien REY",        title: "Sales Trader",                      children: [] },
+            { name: "Pierre-Yves BOUILLAC", title: "Trader Options",                    children: [] },
+            { name: "Houda BERRADA",        title: "Assistant Trader EQD",              children: [] }
+          ]
+        },
+        {
+          name: "Samuel RAUX", title: "Co-Head Flow Options & QIS",
+          children: [
+            { name: "Pierre Olivier BURTE",    title: "Trader Quantitatif",        children: [] },
+            { name: "Antonio BURRAFATO",       title: "Trader Options",            children: [] },
+            { name: "Ivan BRIOZZO",            title: "Trader",                    children: [] },
+            { name: "Alexandre LAVEISSIERE",   title: "Junior Trader Flow Options",children: [] },
+            { name: "Jerome LECLERCQ",         title: "Index Trader",              children: [] }
+          ]
+        },
+        {
+          name: "Jeremie WEILLER", title: "Head Trading Exo Stock Euf",
+          children: [
+            { name: "Alexandre SELEGNY",   title: "Trader Exo Stock Europe", children: [] },
+            { name: "Caroline XIA",        title: "Trader", children: [
+                { name: "Emmanuel AKOUN", title: "Stagiaire d'Études", children: [] }
+            ]},
+            { name: "Fabien SCARFOGLIERO", title: "Trader", children: [] }
+          ]
+        },
+        { name: "Hugo KERGALL", title: "Head of US SS Exo Trading", children: [] }
+      ]
+    },
+    {
+      name: "Karim SEBTI", title: "Resp Trading Algo",
+      children: [
+        { name: "Jean-Mathieu VERMOSEN", title: "Egb Algo Trader", children: [] },
+        { name: "Daniel CHEN", title: "Trader Quantitatif", children: [
+            { name: "Guillaume CHENG", title: "Trader", children: [] }
+        ]},
+        { name: "Amine CHAGOU", title: "FX E-Market Maker", children: [
+            { name: "Ayman SELLAMI", title: "Quant Trader FX", children: [
+                { name: "Mohamed MOHAMED EL BECHIR", title: "Stagiaire d'Études", children: [] }
+            ]}
+        ]},
+        { name: "François BANEL", title: "FX E-Market Maker", children: [
+            { name: "Patrick GUEVEL", title: "FX E-Market Maker", children: [
+                { name: "Thomas ROBERT", title: "Assistant Trader", children: [] }
+            ]}
+        ]},
+        { name: "Ziru NIU", title: "Trader Algo", children: [
+            { name: "Jacques ROUGE",  title: "Stagiaire d'Études", children: [] },
+            { name: "Benjamin DAHAN", title: "Stagiaire d'Études", children: [] }
+        ]},
+        { name: "Stefan BOCSKAI", title: "Trader Algo", children: [] }
+      ]
+    },
+    {
+      name: "Renaud LELONG", title: "Gbl Hd of FIC Financing",
+      children: [
+        { name: "Maxime DANGLOT",  title: "Trader",      children: [] },
+        { name: "Soufiane ERRAJI", title: "Sales Trader", children: [] },
+        { name: "Soazig CHAPELAIN PERFETTI", title: "Trader Stp", children: [
+            { name: "Siegrid BERECZ", title: "Sales Trader", children: [] }
+        ]},
+        { name: "Manuel MONTOYA-COLL...", title: "Trader", children: [
+            { name: "Louis ALLONGUE", title: "Stagiaire d'Études", children: [] }
+        ]},
+        { name: "Nicolas CHARI",   title: "Trader",       children: [] },
+        { name: "Dominique PAGES", title: "Trader Repo",  children: [] }
+      ]
+    },
+    {
+      name: "Olivier CHAMEAU", title: "Resp Mind Trading Linéaire...",
+      children: [
+        {
+          name: "Martin PHILIPPE", title: "Co-Head LSF",
+          children: [
+            { name: "Corentin BIDAULT",       title: "Trader",                         children: [] },
+            { name: "Hugues SAUVAGE",         title: "Trader Cross Asset Financing",   children: [] },
+            { name: "Laurent SOLBES",         title: "Trader",                         children: [] },
+            { name: "Thomas POULLALIE",       title: "Trader",                         children: [] },
+            { name: "Vincent VANOVERBERGHE", title: "Trader",                          children: [] },
+            { name: "Michel OSTERLIND", title: "Trader", children: [
+                { name: "Carl DEGREYSE",  title: "Sales Trader", children: [] },
+                { name: "Romain SERAYET", title: "Sales Trader", children: [] },
+                { name: "Dan BUSBIB",     title: "Sales Trader", children: [] },
+                { name: "Guillaume Bongiorno", title: "Sales Trader", children: [
+                    { name: "Celine CHEN",  title: "Stagiaire d'Études", children: [] },
+                    { name: "Margot BORDEL",title: "Stagiaire d'Études", children: [] }
+                ]}
+            ]}
+          ]
+        },
+        {
+          name: "Ehsan MALEKI", title: "Head of QMM Europe",
+          children: [
+            { name: "Philippe BEAUCAMPS", title: "Trader", children: [] },
+            { name: "Zhuoyuan XU",        title: "Trader", children: [] },
+            { name: "Mathieu Boeda",      title: "Trader", children: [] },
+            { name: "Benoit HUMEZ",       title: "Trader", children: [] },
+            { name: "Jean Daniel BOROWY", title: "Analyst TRD E-Market", children: [
+                { name: "Youssef ALOULOU", title: "Stagiaire d'Études", children: [] }
+            ]},
+            { name: "Camille VERNET", title: "Trader", children: [
+                { name: "Axel SEJOURNE", title: "Stagiaire d'Études", children: [] },
+                { name: "Serina TRAORE", title: "Stagiaire d'Études", children: [] }
+            ]},
+            { name: "Xavier DUBOURG", title: "Trader", children: [
+                { name: "Houssen BOUZOUITA", title: "Trader", children: [] },
+                { name: "Pierre VACHERET",   title: "Trader", children: [] }
+            ]},
+            { name: "Dounia OUACHA", title: "Quant Researcher Trading", children: [
+                { name: "Adrien GUENNEC", title: "Stagiaire d'Études", children: [] }
+            ]},
+            { name: "Samer MAROUN", title: "Trader", children: [] },
+            { name: "Julien TRAN",   title: "Trader", children: [] },
+            { name: "Mauro POLITI",  title: "Trader", children: [] },
+            { name: "Selman JNIFEN", title: "Trader", children: [] }
+          ]
+        },
+        {
+          name: "Nicolas PONTON", title: "Resp of Trading Delta One",
+          children: [
+            { name: "Vincent MARTELET", title: "Trader D1", children: [
+                { name: "Ibrahim BOUADJADJA", title: "Stagiaire d'Études", children: [] },
+                { name: "Oussama HASSANI",    title: "Trader D1",          children: [] },
+                { name: "Frederic CEDEYN",    title: "Trader D1",          children: [] },
+                { name: "Agathe PELAUD",      title: "Trader D1",          children: [] }
+            ]},
+            { name: "Philippe PERRIER", title: "Resp of D1 Trading", children: [
+                { name: "Fabien ORTIZ", title: "Trader D1", children: [
+                    { name: "Ibtissam EL AMRI", title: "Stagiaire d'Études", children: [] },
+                    { name: "Arold TOUBERT",    title: "Stagiaire d'Études", children: [] }
+                ]},
+                { name: "Francois SOULIER",       title: "Trader D1", children: [] },
+                { name: "Simon-Baptiste TRIBOUL...",title: "Trader D1", children: [] },
+                { name: "Jonathan BERDUGO",        title: "Trader D1", children: [] }
+            ]},
+            { name: "Pierre-Yves PHILIPPON", title: "Resp Adjoint Trad Delta One", children: [
+                { name: "Roua JOULI", title: "Trader D1", children: [] },
+                { name: "Matthieu PELLETIER", title: "Trader D1", children: [
+                    { name: "Pedro Alberto CAMPOS", title: "Trader D1", children: [] },
+                    { name: "Pierre DICANDIA",      title: "Trader D1", children: [] },
+                    { name: "Florent FORGET",       title: "Trader D1", children: [] },
+                    { name: "Antoine GALY",         title: "Trader D1", children: [] }
+                ]},
+                { name: "Vianney GARNOIX", title: "Stagiaire d'Études", children: [] }
+            ]},
+            { name: "Andrey SMIRNOV", title: "Trader D1", children: [
+                { name: "Vincent SEGUIN", title: "Trader",    children: [] },
+                { name: "Matthieu RIOM",  title: "Trader D1", children: [
+                    { name: "Soukayna HESSANE", title: "Stragiaire d'Études", children: [] }
+                ]},
+                { name: "Eden FALAYE GALER", title: "Trader D1", children: [] }
+            ]}
+          ]
+        },
+        {
+          name: "Nicolas FLAM", title: "Responsable Trader Dlp",
+          children: [
+            { name: "Ismail QASMI", title: "Trader", children: [
+                { name: "Simon DUONG", title: "Stagiaire d'Etudes", children: [] }
+            ]},
+            { name: "Sylvain SAMOUELIAN", title: "Deputy Head of Equity & Index", children: [
+                { name: "Marie BISSON", title: "Stagiaire d'Etudes", children: [] }
+            ]},
+            { name: "Moctar MEINE", title: "Deputy Head of Global Macro", children: [
+                { name: "Calista HONORE", title: "Stagiaire d'Etudes", children: [] }
+            ]},
+            { name: "David ATTAR",      title: "Deputy Head of Dlp Linear",  children: [] },
+            { name: "Jacques TORRI",    title: "Sales Trader",                children: [] },
+            { name: "Clement CODRON",   title: "Trader",                      children: [] },
+            { name: "Gledis KOPLIKU",   title: "Trader",                      children: [] },
+            { name: "Caroline CHHEU",   title: "Trader",                      children: [] },
+            { name: "Werner ALLEGRET",  title: "Trader",                      children: [] },
+            { name: "Gregory PAJE",     title: "Sales Trader",                children: [] },
+            { name: "Kamel MOULAI",     title: "Trader",                      children: [] },
+            { name: "Valentin GEOFFROY",title: "Quantitative Analyst",        children: [] }
+          ]
+        }
+      ]
+    },
+    {
+      name: "Victor JEANTET", title: "Head of Trading Rates Cash",
+      children: [
+        { name: "Jerome STOLL", title: "Hd Covered Bond Trading", children: [
+            { name: "Zaineb TIOUR",       title: "Trader",           children: [] },
+            { name: "Pietro VERONESI",    title: "Trader",           children: [] },
+            { name: "Alessia BARONCHELLI",title: "Trader Non Corre", children: [] }
+        ]},
+        { name: "Cédric CONSTANTINI", title: "Trader Inflation", children: [] },
+        { name: "Amine ELAYACHI",     title: "Trader Inflation", children: [] },
+        { name: "Laurent-Elie SARFATI", title: "Trader", children: [
+            { name: "Jean-Philippe LOUIS", title: "Trader", children: [] },
+            { name: "Nicolas METIVIER",    title: "Trader", children: [] },
+            { name: "Fabien KFOURY",       title: "Trader", children: [
+                { name: "Mona Jose Camille GRAHOUAN", title: "Stagiaire d'Études", children: [] }
+            ]}
+        ]},
+        { name: "Victor GAUTHIER", title: "Trader SSA",  children: [] },
+        { name: "Laurie MENTEAU",  title: "Trader",      children: [] },
+        { name: "Antoine DUCLOUX", title: "Trader", children: [
+            { name: "Delphine STIEGLER", title: "Trader Covered Bonds", children: [] },
+            { name: "Nicolas MALHERBE",  title: "Trader SSA",           children: [] },
+            { name: "Jack DUTTON",       title: "Trader",               children: [] }
+        ]}
+      ]
+    },
+    {
+      name: "Adil IDRISSI KHAMLICHI", title: "Co-Head Credit Exotic Trading",
+      children: [
+        {
+          name: "Antoine DE LAMETH", title: "Exotic Credit Trader",
+          children: [
+            { name: "Olivier BOURIAUD", title: "Exotic Credit Trader", children: [
+                { name: "Ella BEN SAID",      title: "Stagiaire d'Etudes", children: [] },
+                { name: "Camille GATTEFOSSE", title: "Stagiaire d'Etudes", children: [] },
+                { name: "Enzo DE ZORZI",      title: "Stagiaire d'Etudes", children: [] }
+            ]},
+            { name: "Axel PERIER",     title: "Trader", children: [] },
+            { name: "Karel ALDACCACHE",title: "Trader", children: [] }
+          ]
+        },
+        { name: "Patrick LARDY", title: "Resp Euro FX Exo Trading", children: [
+            { name: "Mathieu VAISSADE", title: "Trader FX", children: [] }
+        ]},
+        { name: "Thomas BUREAU", title: "Global FX Options Trading", children: [
+            { name: "Laurent FAVREAU", title: "Trader",           children: [] },
+            { name: "Jeremy TIBI",     title: "Trader Options FX", children: [] },
+            { name: "Mickael KOSKAS",  title: "Trader Options FX", children: [] }
+        ]}
+      ]
+    },
+    {
+      name: "Olivier FONTE", title: "Head of Europe Rat Derivatives Trading",
+      children: [
+        { name: "Leonard SCHWOB",   title: "Assistant Trader", children: [] },
+        { name: "Anass NOUGAOUI",   title: "Trader",          children: [] },
+        { name: "Antoine TEISSEIRE",title: "Trader",          children: [] },
+        { name: "Alexandre HAUDRECHY", title: "Trader", children: [
+            { name: "Sofia BEN BACCAR", title: "Stagiaire d'Etudes", children: [] }
+        ]},
+        { name: "Pierre-Jean BENAZECH", title: "Gl Head Cross Ccy Swaps Trading", children: [
+            { name: "Inesse AJANA",    title: "Trader Taux",          children: [] },
+            { name: "Guillaume DURIEZ",title: "Trad Xccy Swap & Fxswap", children: [] },
+            { name: "Louis SCHIELE",   title: "Trader",               children: [] }
+        ]},
+        { name: "Stephane NGUYEN",  title: "Trader Short Term Rates Derivatives", children: [] },
+        { name: "Emmanuel HAMACEK", title: "Trader", children: [] },
+        { name: "Lionel MIKOWSKY",  title: "Trader", children: [] },
+        { name: "Celia HOUSSIAUX",  title: "Trader", children: [] }
+      ]
+    },
+    {
+      name: "Augustin HUYNH", title: "Global Co-Head of Exo Trading",
+      children: [
+        { name: "Ignacio Edgardo ORREGO", title: "Trader", children: [] },
+        { name: "Hatem CHARFI", title: "Tradeur Exotique Taux", children: [
+            { name: "Mohamed Issam FRADI",  title: "Stagiaire d'Etudes",          children: [] },
+            { name: "Alessandro GAVAZZENI", title: "Trader",                       children: [] },
+            { name: "Birintha RATNAMOGAN",  title: "Trader",                       children: [] },
+            { name: "Nathan ILL",           title: "Interest Rates Exotic Trader", children: [] },
+            { name: "Yassine ABDOUN",       title: "Trader FX",                    children: [] },
+            { name: "Antoine COIRAULT",     title: "Rates Options Trader Vanilla", children: [] },
+            { name: "Thibault GODEMEL",     title: "Trader Taux Exotique",         children: [] },
+            { name: "Antoine LEDUC",        title: "Stagiaire d'Etudes",           children: [] }
+        ]}
+      ]
+    }
+  ]
+};
+
+const orgGBData = {
+  name: "Sandrine UNGARI",
+  title: "Global Head of QIS Structuring",
+  children: [
+    {
+      name: "Yassine HASSANI", title: "Head of QIS Structuring EMEA",
+      children: [
+        { name: "Nondas ANDRIANOPOULOU", title: "Commodities QIS Structurer", children: [] },
+        { name: "Raphael TRICHES",       title: "QIS Structurer",             children: [] },
+        { name: "Jamie CARPENTER",       title: "ISS Structurer",             children: [] },
+        { name: "Ricky PAN",             title: "QIS Structurer",             children: [] }
+      ]
+    },
+    { name: "Sami KHAN",        title: "Structurer", children: [] },
+    { name: "Matthieu SIMON",   title: "Structurer", children: [] },
+    { name: "Manish MEHTA",     title: "Structurer", children: [] },
+    { name: "Cammy NGUYEN",     title: "Analyst",    children: [] },
+    { name: "Joschka WEINHOLD", title: "Trainee",    children: [] }
+  ]
+};
+
+const orgHKData = [
+  {
+    name: "Vallabh SHASTRI", title: "Head of SPS FIC",
+    children: [
+      { name: "Pierre KADI",   title: "VIE",                       children: [] },
+      { name: "Martin PAN",    title: "Fixed Income Pricer",       children: [] },
+      { name: "Cedric POLONI", title: "Senior Financial Engineer", children: [] },
+      {
+        name: "Pierre LECONTE", title: "Head of Global Markets Cross...",
+        children: [
+          { name: "Jackie YE", title: "Financial Engineer", children: [] },
+          {
+            name: "Pierre Henri JOLY", title: "Structured Products Engineer",
+            children: [
+              { name: "Linus LI",     title: "Product Engineer", children: [] },
+              { name: "Kenny KWOK",   title: "Structurer",       children: [] },
+              { name: "Meixuan WANG", title: "Trainee",          children: [] }
+            ]
+          },
+          { name: "Shuyan ZHANG", title: "Cross Asset Structurer", children: [] }
+        ]
+      },
+      { name: "Steven HWANG", title: "Cross Assets Pricer",        children: [] },
+      { name: "Zoe ZHANG",    title: "Trainee (School/University)", children: [] }
+    ]
+  },
+  {
+    name: "Florent SABOT", title: "Gl Co-Hd of Trad & Hd EQD",
+    children: [
+      { name: "Christopher BAINBRIDGE", title: "Co-Head of PSC, Asia",        children: [] },
+      { name: "Baptiste POUPARD",        title: "Hd of Extic & Hybrid Trdng", children: [] },
+      { name: "Dereke SEETO",            title: "Hd EQD Sales & Co-Hd PSC",   children: [] },
+      { name: "Sourabh SHAHA",           title: "Hd of Eqt Market Making",    children: [] },
+      {
+        name: "Ludovic POIDATZ", title: "Hd of EQD Linear Trading",
+        children: [
+          { name: "Sylvain NICOLAY", title: "Hd of Securities Financing", children: [] },
+          {
+            name: "Christophe OLERON", title: "Head of Delta One Trading",
+            children: [
+              { name: "Jasmine SHAO",       title: "Trainee",          children: [] },
+              { name: "Joseph LEUNG",        title: "Delta One Trader", children: [] },
+              { name: "Woody WONG",          title: "Delta One Trader", children: [] },
+              { name: "Xavier LUK",          title: "Delta One Trader", children: [] },
+              { name: "Jurgen KOPLIKU",      title: "Delta One Trader", children: [] },
+              { name: "Frank SAVIO",         title: "Delta One Trader", children: [] },
+              { name: "Baptiste PRADELLE",   title: "Delta One Trader", children: [] },
+              { name: "Sosthene DE LAMOTTE", title: "Delta One Trader", children: [] },
+              { name: "Anson LIU",           title: "Delta One Trader", children: [] },
+              { name: "Garance ROUX",        title: "VIE",              children: [] }
+            ]
+          },
+          { name: "Amaury LACOURTE", title: "Reg Hd of Byem Trdng, Asia", children: [] }
+        ]
+      }
+    ]
+  }
+];
+
+const orgJPNData = {
+  name: "Guillaume BEAURAIN",
+  title: "Co-Head of MARK SPS, APAC",
+  children: [
+    { name: "Takekazu HIRAMATSU", title: "Fixed Income Structurer",         children: [] },
+    { name: "Mathis LOISEAU",     title: "Pricer for Equity Index & Fun...", children: [] },
+    { name: "Stella HU",          title: "Products Engineer",               children: [] },
+    {
+      name: "Animesh SAXENA", title: "Head of Equ Pri Distr, Asia",
+      children: [
+        { name: "Lucas YANG", title: "Trainee",           children: [] },
+        { name: "John LI",    title: "Financial Engineer", children: [] }
+      ]
+    },
+    {
+      name: "Abhinav GARG", title: "QIS Structuring",
+      children: [
+        { name: "Pradeep KANADE",       title: "QIS Structurer",        children: [] },
+        { name: "Anson CHOW",           title: "Global Markets Analyst", children: [] },
+        { name: "Elliot BRUERE DAWSON", title: "VIE",                   children: [] }
+      ]
+    },
+    { name: "Liem DROMARD",      title: "Senior Cross Asset Pricer", children: [] },
+    { name: "Ying YE",           title: "Structurer",                children: [] },
+    { name: "Oscar LEUNG",       title: "Senior Structurer",         children: [] },
+    { name: "Julien BAGNARIOL",  title: "VIE",                       children: [] }
+  ]
+};
+
+/* ================================================================
+   HELPERS
+================================================================ */
+function countNodes(node) {
+  if (!node) return 0;
+  return 1 + (node.children || []).reduce((s, c) => s + countNodes(c), 0);
+}
+function maxDepth(node) {
+  if (!node) return 0;
+  const kids = node.children || [];
+  if (!kids.length) return 0;
+  return 1 + Math.max(...kids.map(maxDepth));
+}
+function countInterns(node) {
+  if (!node) return 0;
+  const self = /stagiaire/i.test(node.title || '') ? 1 : 0;
+  return self + (node.children || []).reduce((s, c) => s + countInterns(c), 0);
+}
+
+const orgHKWrapped = {
+  name: "SPS Asia — HK",
+  title: "MARK/SPS/EQD & FIC",
+  children: orgHKData
+};
+
+const REGIONS = [
+  { key: 'FR',  label: 'Paris',     flag: '🇫🇷', data: orgFRData    },
+  { key: 'GB',  label: 'London',    flag: '🇬🇧', data: orgGBData    },
+  { key: 'HK',  label: 'Hong Kong', flag: '🇭🇰', data: orgHKWrapped },
+  { key: 'JPN', label: 'Tokyo',     flag: '🇯🇵', data: orgJPNData   },
+];
+
+/* ================================================================
+   OrgNode
+================================================================ */
+function OrgNode({ node, level, search }) {
+  const kids = node.children || [];
+  const hasKids = kids.length > 0;
+  const [open, setOpen] = useState(level < 2);
+
+  const q = search.trim().toLowerCase();
+  const isStag = /stagiaire/i.test(node.title || '');
+  const isHit  = q && (
+    node.name.toLowerCase().includes(q) ||
+    (node.title || '').toLowerCase().includes(q)
+  );
+  const show = q ? true : open;
+
+  const lvl = 'l' + Math.min(level, 4);
+
+  return (
+    <div className="nw">
+      <div
+        className={`nc ${lvl}${isStag ? ' stag' : ''}${isHit ? ' hit' : ''}${hasKids ? ' clickable' : ''}`}
+        title={node.name + (node.title ? '\n' + node.title : '')}
+        onClick={() => hasKids && setOpen(o => !o)}
+      >
+        <div className="nn">{node.name}</div>
+        {node.title && <div className="nt">{node.title}</div>}
+        {hasKids && !q && (
+          <div className="nb" style={{ background: open ? '#1e3a8a' : '#2563eb' }}>
+            {open ? '▴' : `▾ ${kids.length}`}
+          </div>
+        )}
+      </div>
+
+      {hasKids && show && (
+        <>
+          <div className="vl" />
+          <div className="cr fade-in">
+            {kids.map((child, i) => (
+              <div key={i} className="cs">
+                <OrgNode node={child} level={level + 1} search={search} />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ================================================================
+   App
+================================================================ */
+function App() {
+  const [regionKey, setRegionKey] = useState('FR');
+  const [search, setSearch] = useState('');
+
+  const region = REGIONS.find(r => r.key === regionKey);
+  const total   = useMemo(() => countNodes(region.data),   [region]);
+  const depth   = useMemo(() => maxDepth(region.data),     [region]);
+  const interns = useMemo(() => countInterns(region.data), [region]);
+
+  function switchRegion(key) {
+    setRegionKey(key);
+    setSearch('');
+  }
+
+  return (
+    <div className="app">
+
+      {/* ── Header ── */}
+      <header className="header">
+        <span className="logo">MARK&nbsp;/&nbsp;SPS</span>
+        <div className="logo-sep" />
+        <span className="logo-sub">Organization Chart</span>
+        <div className="hdr-right">
+          <div className="search-box">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search name or title…"
+            />
+            {search && (
+              <span className="clear-btn" onClick={() => setSearch('')}>✕</span>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="body">
+
+        {/* ── Sidebar ── */}
+        <aside className="sidebar">
+          <div className="sb-label">Offices</div>
+          {REGIONS.map(r => (
+            <button
+              key={r.key}
+              className={`rb${regionKey === r.key ? ' active' : ''}`}
+              onClick={() => switchRegion(r.key)}
+            >
+              <span className="rb-flag">{r.flag}</span>
+              {r.label}
+              <span className="rb-count">{countNodes(r.data)}</span>
+            </button>
+          ))}
+        </aside>
+
+        {/* ── Main ── */}
+        <main className="main">
+
+          {/* Stats */}
+          <div className="stats">
+            <div className="sc">
+              <div className="sc-val">{total}</div>
+              <div className="sc-lbl">Members</div>
+            </div>
+            <div className="sc">
+              <div className="sc-val">{depth}</div>
+              <div className="sc-lbl">Levels</div>
+            </div>
+            <div className="sc">
+              <div className="sc-val">{interns}</div>
+              <div className="sc-lbl">Interns</div>
+            </div>
+            <div className="sc wide">
+              <div className="sc-val">{region.data.name}</div>
+              <div className="sc-lbl">{region.data.title}</div>
+            </div>
+          </div>
+
+          {/* Chart */}
+          <div className="chart-root">
+            <OrgNode
+              key={regionKey}
+              node={region.data}
+              level={0}
+              search={search}
+            />
+          </div>
+
+        </main>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
